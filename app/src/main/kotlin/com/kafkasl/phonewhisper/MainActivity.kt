@@ -173,6 +173,9 @@ class MainActivity : AppCompatActivity() {
         root.addView(langRow)
         langRowSub = langRow.findViewWithTag("subtitle")
 
+        val vInfo = packageManager.getPackageInfo(packageName, 0)
+        root.addView(settingsRow(getString(R.string.version), vInfo.versionName ?: "?"))
+
         val keyRow = settingsRow("OpenAI API Key", "Tap to set") { promptApiKey() }
         keyRowSub = keyRow.findViewWithTag("subtitle")
         if (CLOUD_ENABLED) root.addView(keyRow)
