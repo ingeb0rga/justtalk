@@ -668,7 +668,17 @@ class WhisperAccessibilityService : AccessibilityService() {
             }
             val setTextOk = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
             Log.i(TAG, "ACTION_SET_TEXT => $setTextOk")
-            if (setTextOk) return true
+            if (setTextOk) {
+                // ACTION_SET_TEXT leaves the view's stale selection at 0; place the
+                // caret at the end so Enter/typing continue after the inserted text.
+                val selArgs = Bundle().apply {
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START, updated.length)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END, updated.length)
+                }
+                val selOk = node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
+                Log.i(TAG, "ACTION_SET_SELECTION(end) => $selOk")
+                return true
+            }
         }
 
         return false
