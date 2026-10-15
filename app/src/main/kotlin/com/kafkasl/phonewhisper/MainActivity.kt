@@ -292,7 +292,7 @@ class MainActivity : AppCompatActivity() {
         val views = promptRows[preset.key] ?: return
         val current = currentPrompt()
         val active = when (preset.key) {
-            "custom" -> current != PostProcessor.DEV_PROMPT && current != PostProcessor.SIMPLE_PROMPT
+            "custom" -> current != PostProcessor.DETAILED_PROMPT && current != PostProcessor.SIMPLE_PROMPT
             else -> current == preset.prompt
         }
         views.radio.isChecked = active
@@ -453,9 +453,9 @@ class MainActivity : AppCompatActivity() {
     private fun promptPresets() = listOf(
         PromptPreset(
             key = "dev",
-            title = "Dev cleanup",
-            subtitle = "Best for coding, CLI, and project names",
-            prompt = PostProcessor.DEV_PROMPT
+            title = "Detailed cleanup",
+            subtitle = "Full cleanup incl. commands and questions",
+            prompt = PostProcessor.DETAILED_PROMPT
         ),
         PromptPreset(
             key = "simple",

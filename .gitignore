@@ -4,4 +4,4 @@ build/
 local.properties
 .env
 *.apk
-app/src/main/jniLibs/
+# jniLibs/.so are bundled in the fork (app/src/main/jniLibs/arm64-v8a, sherpa-onnx v1.13.8) — do NOT ignore
