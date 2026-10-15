@@ -19,7 +19,7 @@ Tap the floating button, speak, tap again, and your text is inserted into the cu
 
 ### Download the APK
 
-Grab the latest APK from [GitHub Releases](https://github.com/ingeb0rga/phone-whisper/releases).
+Grab the latest APK from [GitHub Releases](https://github.com/ingeb0rga/justtalk/releases).
 
 > **Google Play Protect** may warn about unknown apps during install — tap *Install anyway* (the app has no backend, no analytics; see [PRIVACY.md](PRIVACY.md)).
 
@@ -30,7 +30,7 @@ Open it on your phone, install it, then launch the app once to finish setup.
 Requires JDK 17 and Android SDK (platform 34).
 
 ```bash
-git clone https://github.com/ingeb0rga/phone-whisper.git && cd phone-whisper
+git clone https://github.com/ingeb0rga/justtalk.git && cd phone-whisper
 make build
 ```
 
@@ -72,7 +72,7 @@ Full policy: [PRIVACY.md](PRIVACY.md)
 
 ## Local models
 
-Models are stored in app storage under `/data/data/com.kafkasl.phonewhisper/files/models/`.
+Models are stored in app storage under `/data/data/com.spirt.justtalk/files/models/`.
 
 Catalog (sherpa-onnx release archives, downloaded and extracted by the app):
 
