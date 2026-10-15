@@ -138,7 +138,7 @@ class MainActivity : AppCompatActivity() {
             isChecked = prefs().getBoolean("copy_to_clipboard", true)
             isClickable = false
         }
-        root.addView(settingsRow("Copy to clipboard", "Keep a copy of each transcription in clipboard", clipSwitch) {
+        root.addView(settingsRow("Keep text in clipboard", "OFF = dictation is wiped from clipboard 1.5s after insert (Android forbids restoring the previous value)", clipSwitch) {
             val newVal = !clipSwitch.isChecked
             prefs().edit().putBoolean("copy_to_clipboard", newVal).apply()
             clipSwitch.isChecked = newVal
