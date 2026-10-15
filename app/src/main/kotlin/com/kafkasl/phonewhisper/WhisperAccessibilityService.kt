@@ -528,10 +528,13 @@ class WhisperAccessibilityService : AccessibilityService() {
         feedbackDurationMs: Long = 2000
     ) {
         val copyToClipboard = prefs().getBoolean("copy_to_clipboard", true)
-        if (copyToClipboard) {
-            val clip = ClipData.newPlainText("phonewhisper", text)
-            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
-        }
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("phonewhisper", text)
+        // Paste is the only insertion that every app renders correctly (hint-as-text
+        // fields included), so always paste through the clipboard. When the user opted
+        // out of keeping the transcription, restore the previous clipboard afterwards.
+        val savedClip = if (copyToClipboard) null else cm.primaryClip
+        cm.setPrimaryClip(clip)
         feedback?.let {
             showFeedback(
                 if (copyToClipboard) it else it.replace("Copied to clipboard", "Inserted"),
@@ -545,19 +548,23 @@ class WhisperAccessibilityService : AccessibilityService() {
         var injected = false
         try {
             for (candidate in candidates) {
-                if (tryInjectIntoNode(candidate, text, allowPaste = copyToClipboard)) {
+                if (tryInjectIntoNode(candidate, text)) {
                     injected = true
                     break
                 }
             }
         } finally {
             candidates.forEach { it.recycle() }
+            if (!copyToClipboard) {
+                if (savedClip != null) cm.setPrimaryClip(savedClip) else cm.clearPrimaryClip()
+            }
         }
 
         Log.i(TAG, if (injected) "Text injection action reported success" else if (copyToClipboard) "No injection action succeeded; clipboard fallback only" else "No injection action succeeded")
     }
 
     private fun moveCaretToEnd(node: AccessibilityNodeInfo) {
+        node.refresh()
         val len = node.text?.length ?: 0
         val args = Bundle().apply {
             putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, len)
@@ -639,12 +646,12 @@ class WhisperAccessibilityService : AccessibilityService() {
         return score
     }
 
-    private fun tryInjectIntoNode(node: AccessibilityNodeInfo, text: String, allowPaste: Boolean = true): Boolean {
+    private fun tryInjectIntoNode(node: AccessibilityNodeInfo, text: String): Boolean {
         logNode("Trying node", node)
 
         node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
 
-        if (allowPaste) {
+        run {
             findCustomPasteAction(node)?.let { action ->
                 val ok = node.performAction(action.id)
                 Log.i(TAG, "Custom action '${action.label}' (${action.id}) => $ok")
@@ -657,6 +664,7 @@ class WhisperAccessibilityService : AccessibilityService() {
                 moveCaretToEnd(node)
                 return true
             }
+        }
         }
 
         if (node.isEditable || node.className?.toString()?.contains("EditText") == true) {
