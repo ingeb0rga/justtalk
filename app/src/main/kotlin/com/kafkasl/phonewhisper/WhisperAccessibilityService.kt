@@ -665,7 +665,6 @@ class WhisperAccessibilityService : AccessibilityService() {
                 return true
             }
         }
-        }
 
         if (node.isEditable || node.className?.toString()?.contains("EditText") == true) {
             val current = node.text?.toString().orEmpty()
