@@ -22,6 +22,21 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    signingConfigs {
+        // Stable debug signature so rebuilds can upgrade the installed app
+        // without losing downloaded models. Keystore is committed (debug-only).
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
+    buildTypes {
+        getByName("debug") { signingConfig = signingConfigs.getByName("debug") }
+    }
+
     @Suppress("DEPRECATION")
     kotlinOptions { jvmTarget = "17" }
 
