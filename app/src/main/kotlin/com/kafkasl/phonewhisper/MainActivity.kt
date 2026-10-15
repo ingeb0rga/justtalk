@@ -48,6 +48,22 @@ class MainActivity : AppCompatActivity() {
         val subtitle: TextView
     )
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(applyLangPref(newBase))
+    }
+
+    private fun langPref() = prefs().getString("app_lang", "system") ?: "system"
+
+    private fun applyLangPref(ctx: android.content.Context): android.content.Context {
+        val lang = ctx.getSharedPreferences("phonewhisper", MODE_PRIVATE).getString("app_lang", "system") ?: "system"
+        if (lang == "system") return ctx
+        val loc = java.util.Locale(lang)
+        java.util.Locale.setDefault(loc)
+        val cfg = android.content.res.Configuration(ctx.resources.configuration)
+        cfg.setLocale(loc)
+        return ctx.createConfigurationContext(cfg)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -55,21 +71,21 @@ class MainActivity : AppCompatActivity() {
 
         // Top large header (like "Connected devices")
         val header = TextView(this).apply {
-            text = "JustTalk"
+            text = getString(R.string.app_name)
             textSize = 32f
             setPadding(dp(24), dp(64), dp(24), dp(24))
         }
         root.addView(header)
 
         // Status row
-        val statusRow = settingsRow("Status", "Checking...")
+        val statusRow = settingsRow(getString(R.string.status), getString(R.string.checking))
         statusSubtitle = statusRow.findViewWithTag("subtitle")
         root.addView(statusRow)
 
         // --- Setup Section ---
-        root.addView(sectionHeader("Setup"))
+        root.addView(sectionHeader(getString(R.string.setup)))
         
-        val audioRow = settingsRow("Audio permission", "Checking...") {
+        val audioRow = settingsRow(getString(R.string.audio_permission), getString(R.string.checking)) {
             if (!hasPerm(Manifest.permission.RECORD_AUDIO)) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
             }
@@ -77,7 +93,7 @@ class MainActivity : AppCompatActivity() {
         audioRowSub = audioRow.findViewWithTag("subtitle")
         root.addView(audioRow)
 
-        val accRow = settingsRow("Accessibility service", "Checking...") {
+        val accRow = settingsRow(getString(R.string.accessibility_service), getString(R.string.checking)) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
         accRowSub = accRow.findViewWithTag("subtitle")
@@ -101,7 +117,7 @@ class MainActivity : AppCompatActivity() {
 
         // Local Models section
         modelContainer = vertical(0)
-        modelContainer.addView(sectionHeader("Local models"))
+        modelContainer.addView(sectionHeader(getString(R.string.local_models)))
         for (m in MODEL_CATALOG) modelContainer.addView(buildModelRow(m))
         root.addView(modelContainer)
 
@@ -132,7 +148,25 @@ class MainActivity : AppCompatActivity() {
         if (CLOUD_ENABLED) root.addView(promptRow)
 
         // --- Settings Section ---
-        if (CLOUD_ENABLED) root.addView(sectionHeader("Settings"))
+        root.addView(sectionHeader(getString(R.string.settings)))
+
+        val langValues = listOf("system", "ru", "en")
+        val langLabels = listOf(getString(R.string.lang_system), "Русский", "English")
+        val langSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, langLabels)
+            setSelection(langValues.indexOf(langPref()))
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
+                    val v = langValues[pos]
+                    if (v != langPref()) {
+                        prefs().edit().putString("app_lang", v).apply()
+                        recreate()
+                    }
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        }
+        root.addView(settingsRow(getString(R.string.language), "", langSpinner))
 
         val keyRow = settingsRow("OpenAI API Key", "Tap to set") { promptApiKey() }
         keyRowSub = keyRow.findViewWithTag("subtitle")
@@ -184,7 +218,7 @@ class MainActivity : AppCompatActivity() {
 
         val row = settingsRow(
             if (model.recommended) model.name else model.name,
-            "${model.quality} · ${model.sizeMb} MB",
+            getString(model.qualityRes) + " · ${model.sizeMb} MB",
             rightContainer
         ) {
             onModelAction(model)
@@ -212,27 +246,27 @@ class MainActivity : AppCompatActivity() {
         views.dlBtn.isEnabled = false
         views.progress.visibility = View.VISIBLE
         views.progress.isIndeterminate = false
-        views.subtitle.text = "Starting download..."
+        views.subtitle.text = getString(R.string.starting_download)
 
         ModelDownloader.download(this, model) { state ->
             runOnUiThread {
                 when (state) {
                     is DownloadState.Downloading -> {
                         views.progress.progress = (state.progress * 100).toInt()
-                        views.subtitle.text = "Downloading: ${(state.progress * 100).toInt()}%"
+                        views.subtitle.text = getString(R.string.downloading_pct, (state.progress * 100).toInt())
                     }
                     is DownloadState.Extracting -> {
                         views.progress.isIndeterminate = true
-                        views.subtitle.text = "Extracting..."
+                        views.subtitle.text = getString(R.string.extracting)
                     }
                     is DownloadState.Done -> {
                         views.progress.visibility = View.GONE
                         selectModel(model.archive)
-                        toast("${model.name} ready!")
+                        toast(getString(R.string.model_ready, model.name))
                     }
                     is DownloadState.Error -> {
                         views.progress.visibility = View.GONE
-                        views.subtitle.text = "Error: ${state.message}"
+                        views.subtitle.text = getString(R.string.error_with_msg, state.message)
                         views.dlBtn.isEnabled = true
                     }
                 }
@@ -256,7 +290,7 @@ class MainActivity : AppCompatActivity() {
         views.dlBtn.visibility = if (installed) View.GONE else View.VISIBLE
         
         if (views.progress.visibility == View.GONE) {
-            views.subtitle.text = "${model.quality} · ${model.sizeMb} MB"
+            views.subtitle.text = getString(model.qualityRes) + " · ${model.sizeMb} MB"
         }
     }
 
@@ -311,8 +345,8 @@ class MainActivity : AppCompatActivity() {
         val hasKey = !prefs().getString("api_key", "").isNullOrBlank()
         val hasModel = LocalTranscriber.availableModels(this).isNotEmpty()
 
-        audioRowSub.text = if (audio) "Granted" else "Tap to grant permission"
-        accRowSub.text = if (acc) "Enabled" else "Tap to enable in settings"
+        audioRowSub.text = if (audio) getString(R.string.granted) else getString(R.string.tap_to_grant)
+        accRowSub.text = if (acc) getString(R.string.enabled) else getString(R.string.tap_to_enable)
 
         modelContainer.visibility = if (useLocal) View.VISIBLE else View.GONE
         promptContainer.visibility = if (usePostProcessing) View.VISIBLE else View.GONE
@@ -338,7 +372,7 @@ class MainActivity : AppCompatActivity() {
         val postReady = !usePostProcessing || hasKey
         val ready = audio && acc && (localReady || cloudReady) && postReady
 
-        statusSubtitle.text = if (ready) "Ready — tap the overlay dot to dictate" else "Setup required"
+        statusSubtitle.text = if (ready) getString(R.string.ready_text) else getString(R.string.setup_required)
         statusSubtitle.setTextColor(if (ready) attrColor(com.google.android.material.R.attr.colorPrimary) else attrColor(android.R.attr.textColorSecondary))
         
         refreshAllCards()

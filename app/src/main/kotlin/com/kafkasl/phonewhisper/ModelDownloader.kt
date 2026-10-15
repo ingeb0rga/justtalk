@@ -13,7 +13,7 @@ data class Model(
     /** Directory name under files/models (also tar.bz2 asset name for GitHub-hosted models). */
     val archive: String,
     val sizeMb: Int,
-    val quality: String,
+    val qualityRes: Int,
     val recommended: Boolean = false,
     /** Non-null: download individual files from this HuggingFace repo instead of a GitHub tar.bz2. */
     val hfRepo: String? = null,
@@ -26,9 +26,9 @@ const val CLOUD_ENABLED = false
 
 val MODEL_CATALOG = listOf(
     Model("Qwen3-ASR 0.6B", "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25",
-        838, "★★★★★ ru + en + 27 языков, пунктуация", recommended = true),
+        838, R.string.quality_qwen06, recommended = true),
     Model("Qwen3-ASR 1.7B", "sherpa-onnx-qwen3-asr-1.7B-int8",
-        2290, "точнее, но 2.3GB и ~2× медленнее; нет официального архива — качается с HuggingFace",
+        2290, R.string.quality_qwen17,
         hfRepo = "ilmina/qwen3-asr-1.7b-sherpa-onnx",
         hfFiles = listOf(
             "conv_frontend.onnx",

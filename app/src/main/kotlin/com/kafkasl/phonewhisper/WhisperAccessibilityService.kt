@@ -361,7 +361,7 @@ class WhisperAccessibilityService : AccessibilityService() {
     private fun startRecording() {
         if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
             != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            toast("Grant audio permission in JustTalk app"); return
+            toast(l(R.string.grant_audio_app)); return
         }
 
         val bufSize = AudioRecord.getMinBufferSize(
@@ -372,7 +372,7 @@ class WhisperAccessibilityService : AccessibilityService() {
                 MediaRecorder.AudioSource.MIC, SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufSize
             )
-        } catch (_: SecurityException) { toast("Audio permission denied"); return }
+        } catch (_: SecurityException) { toast(l(R.string.audio_denied)); return }
 
         pcmStream = ByteArrayOutputStream()
         audioRecord!!.startRecording()
@@ -403,7 +403,7 @@ class WhisperAccessibilityService : AccessibilityService() {
         val pcm = pcmStream?.toByteArray() ?: ByteArray(0)
         pcmStream = null
 
-        if (pcm.isEmpty()) { reset("No audio captured"); return }
+        if (pcm.isEmpty()) { reset(l(R.string.no_audio)); return }
 
         val useLocal = true // cloud mode disabled in this fork (CLOUD_ENABLED = false)
         val local = localTranscriber
@@ -411,7 +411,7 @@ class WhisperAccessibilityService : AccessibilityService() {
         if (useLocal && local != null) {
             transcribeLocal(pcm, local)
         } else {
-            reset("No local model installed")
+            reset(l(R.string.no_local_model))
         }
     }
 
@@ -435,7 +435,7 @@ class WhisperAccessibilityService : AccessibilityService() {
             } catch (e: Exception) {
                 Log.e(TAG, "Local transcription failed", e)
                 handler.post {
-                    toast("Local error: ${e.message}")
+                    toast(l(R.string.local_error, e.message ?: ""))
                     state = State.IDLE
                     setBusy(false)
                     setAppearance(COLOR_IDLE)
@@ -466,7 +466,7 @@ class WhisperAccessibilityService : AccessibilityService() {
     private fun handleTranscriptionResult(text: String?) {
         if (text.isNullOrBlank()) {
             handler.post {
-                toast("No speech detected")
+                toast(l(R.string.no_speech))
                 state = State.IDLE
                 setBusy(false)
                 setAppearance(COLOR_IDLE)
@@ -511,6 +511,18 @@ class WhisperAccessibilityService : AccessibilityService() {
                 setAppearance(COLOR_IDLE)
             }
         }
+    }
+
+    // Localized lookup honoring the app-language preference chosen in Settings.
+    private fun l(res: Int, vararg args: Any): String {
+        val lang = prefs().getString("app_lang", "system") ?: "system"
+        val ctx = if (lang == "system") this else {
+            val loc = java.util.Locale(lang)
+            val cfg = android.content.res.Configuration(resources.configuration)
+            cfg.setLocale(loc)
+            createConfigurationContext(cfg)
+        }
+        return if (args.isEmpty()) ctx.getString(res) else ctx.getString(res, *args)
     }
 
     private fun reset(msg: String) {

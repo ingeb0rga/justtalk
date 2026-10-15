@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_description">Диктовка: записывает звук, распознаёт речь и вставляет текст в активное поле ввода.</string>
+
+    <string name="status">Статус</string>
+    <string name="checking">Проверка…</string>
+    <string name="setup">Настройка</string>
+    <string name="audio_permission">Доступ к микрофону</string>
+    <string name="accessibility_service">Спец. возможности</string>
+    <string name="granted">Разрешено</string>
+    <string name="tap_to_grant">Нажмите, чтобы разрешить</string>
+    <string name="enabled">Включено</string>
+    <string name="tap_to_enable">Включите в настройках</string>
+    <string name="local_models">Локальные модели</string>
+    <string name="ready_text">Готово — нажмите на точку, чтобы надиктовать</string>
+    <string name="setup_required">Требуется настройка</string>
+    <string name="settings">Настройки</string>
+    <string name="language">Язык приложения</string>
+    <string name="lang_system">Системный</string>
+
+    <string name="starting_download">Начинаем загрузку…</string>
+    <string name="downloading_pct">Загрузка: %1$d%%</string>
+    <string name="extracting">Распаковка…</string>
+    <string name="model_ready">%1$s готова!</string>
+    <string name="error_with_msg">Ошибка: %1$s</string>
+
+    <string name="no_audio">Аудио не записано</string>
+    <string name="no_local_model">Локальная модель не установлена</string>
+    <string name="no_speech">Речь не распознана</string>
+    <string name="audio_denied">Нет доступа к микрофону</string>
+    <string name="grant_audio_app">Разрешите доступ к микрофону в приложении JustTalk</string>
+    <string name="local_error">Ошибка распознавания: %1$s</string>
+
+    <string name="quality_qwen06">★★★★★ ru + en + 27 языков, пунктуация</string>
+    <string name="quality_qwen17">точнее 0.6B, ~2× медленнее, 2.3GB, качается с HuggingFace</string>
+</resources>
