@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var promptRow: LinearLayout
     private lateinit var modelContainer: LinearLayout
     private lateinit var promptContainer: LinearLayout
+    private lateinit var langRowSub: TextView
 
     private val modelRows = mutableMapOf<String, ModelRowViews>()
     private val promptRows = mutableMapOf<String, PromptRowViews>()
@@ -53,6 +54,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun langPref() = prefs().getString("app_lang", "system") ?: "system"
+
+    private val langValues = listOf("system", "ru", "en")
+    private fun langLabels() = listOf(getString(R.string.lang_system), "Русский", "English")
 
     private fun applyLangPref(ctx: android.content.Context): android.content.Context {
         val lang = ctx.getSharedPreferences("phonewhisper", MODE_PRIVATE).getString("app_lang", "system") ?: "system"
@@ -150,23 +154,24 @@ class MainActivity : AppCompatActivity() {
         // --- Settings Section ---
         root.addView(sectionHeader(getString(R.string.settings)))
 
-        val langValues = listOf("system", "ru", "en")
-        val langLabels = listOf(getString(R.string.lang_system), "Русский", "English")
-        val langSpinner = Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, langLabels)
-            setSelection(langValues.indexOf(langPref()))
-            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
-                    val v = langValues[pos]
-                    if (v != langPref()) {
-                        prefs().edit().putString("app_lang", v).apply()
+        val langRow = settingsRow(
+            getString(R.string.language),
+            langLabels()[langValues.indexOf(langPref())]
+        ) {
+            val checked = langValues.indexOf(langPref())
+            android.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.language))
+                .setSingleChoiceItems(langLabels().toTypedArray(), checked) { dlg, pos ->
+                    dlg.dismiss()
+                    if (langValues[pos] != langPref()) {
+                        prefs().edit().putString("app_lang", langValues[pos]).apply()
                         recreate()
                     }
                 }
-                override fun onNothingSelected(parent: AdapterView<*>?) {}
-            }
+                .show()
         }
-        root.addView(settingsRow(getString(R.string.language), "", langSpinner))
+        root.addView(langRow)
+        langRowSub = langRow.findViewWithTag("subtitle")
 
         val keyRow = settingsRow("OpenAI API Key", "Tap to set") { promptApiKey() }
         keyRowSub = keyRow.findViewWithTag("subtitle")
@@ -375,6 +380,7 @@ class MainActivity : AppCompatActivity() {
         statusSubtitle.text = if (ready) getString(R.string.ready_text) else getString(R.string.setup_required)
         statusSubtitle.setTextColor(if (ready) attrColor(com.google.android.material.R.attr.colorPrimary) else attrColor(android.R.attr.textColorSecondary))
         
+        langRowSub.text = langLabels()[langValues.indexOf(langPref())]
         refreshAllCards()
         refreshPromptRows()
     }
