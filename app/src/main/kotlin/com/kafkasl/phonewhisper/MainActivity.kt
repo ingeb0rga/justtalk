@@ -132,17 +132,7 @@ class MainActivity : AppCompatActivity() {
         if (CLOUD_ENABLED) root.addView(promptRow)
 
         // --- Settings Section ---
-        root.addView(sectionHeader("Settings"))
-
-        val clipSwitch = MaterialSwitch(this).apply {
-            isChecked = prefs().getBoolean("copy_to_clipboard", true)
-            isClickable = false
-        }
-        root.addView(settingsRow("Keep text in clipboard", "OFF = dictation is wiped from clipboard 1.5s after insert (Android forbids restoring the previous value)", clipSwitch) {
-            val newVal = !clipSwitch.isChecked
-            prefs().edit().putBoolean("copy_to_clipboard", newVal).apply()
-            clipSwitch.isChecked = newVal
-        })
+        if (CLOUD_ENABLED) root.addView(sectionHeader("Settings"))
 
         val keyRow = settingsRow("OpenAI API Key", "Tap to set") { promptApiKey() }
         keyRowSub = keyRow.findViewWithTag("subtitle")

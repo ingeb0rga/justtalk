@@ -63,7 +63,6 @@ class WhisperAccessibilityService : AccessibilityService() {
     private var audioRecord: AudioRecord? = null
     private var pcmStream: ByteArrayOutputStream? = null
     private val handler = Handler(Looper.getMainLooper())
-    private var pendingRestore: Runnable? = null
     private val hideFeedback = Runnable {
         feedbackView?.animate()?.alpha(0f)?.setDuration(180)?.withEndAction {
             feedbackView?.visibility = View.GONE
@@ -497,7 +496,7 @@ class WhisperAccessibilityService : AccessibilityService() {
                     if (result.text != null && result.text.isNotBlank()) {
                         injectText(result.text)
                     } else {
-                        injectText(text, feedback = "Cleanup failed — raw copied to clipboard", feedbackDurationMs = 3000)
+                        injectText(text)
                     }
                     state = State.IDLE
                     setBusy(false)
@@ -523,27 +522,12 @@ class WhisperAccessibilityService : AccessibilityService() {
 
     // --- Text injection ---
 
-    private val CLIPBOARD_RESTORE_DELAY_MS = 1500L
-
-    private fun injectText(
-        text: String,
-        feedback: String? = null,
-        feedbackDurationMs: Long = 2000
-    ) {
-        val copyToClipboard = prefs().getBoolean("copy_to_clipboard", true)
+    private fun injectText(text: String) {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("phonewhisper", text)
         // Paste is the only insertion that every app renders correctly (hint-as-text
-        // fields included), so always paste through the clipboard. When the user opted
-        // out of keeping the transcription, restore the previous clipboard afterwards.
-        flushPendingRestore()
+        // fields included), so always paste through the clipboard.
         cm.setPrimaryClip(clip)
-        feedback?.let {
-            showFeedback(
-                if (copyToClipboard) it else it.replace("Copied to clipboard", "Inserted"),
-                feedbackDurationMs
-            )
-        }
 
         val candidates = findInjectionCandidates()
         Log.i(TAG, "Injecting text into ${candidates.size} candidate node(s)")
@@ -558,10 +542,9 @@ class WhisperAccessibilityService : AccessibilityService() {
             }
         } finally {
             candidates.forEach { it.recycle() }
-            if (!copyToClipboard) scheduleClipboardWipe(cm)
         }
 
-        Log.i(TAG, if (injected) "Text injection action reported success" else if (copyToClipboard) "No injection action succeeded; clipboard fallback only" else "No injection action succeeded")
+        Log.i(TAG, if (injected) "Text injection action reported success" else "No injection action succeeded; clipboard fallback only")
     }
 
     private fun moveCaretToEnd(node: AccessibilityNodeInfo) {
@@ -576,27 +559,6 @@ class WhisperAccessibilityService : AccessibilityService() {
         Log.i(TAG, "Caret->end(len=$len) set=$ok readback=${node.textSelectionStart}..${node.textSelectionEnd} textLen=${node.text?.length}")
     }
 
-    // Apps cannot READ another app's clipboard content (Android 10+), so the previous
-    // clipboard value cannot be restored. With the toggle off we instead wipe the
-    // transcription from the clipboard after the paste has been consumed. Keep reads
-    // the clipboard asynchronously, hence the delay.
-    private fun scheduleClipboardWipe(cm: ClipboardManager) {
-        flushPendingRestore()
-        val r = Runnable {
-            cm.setPrimaryClip(ClipData.newPlainText("", ""))
-            pendingRestore = null
-        }
-        pendingRestore = r
-        handler.postDelayed(r, CLIPBOARD_RESTORE_DELAY_MS)
-    }
-
-    private fun flushPendingRestore() {
-        pendingRestore?.let {
-            handler.removeCallbacks(it)
-            it.run()
-            pendingRestore = null
-        }
-    }
 
     private fun findInjectionCandidates(): List<AccessibilityNodeInfo> {
         val candidates = mutableListOf<AccessibilityNodeInfo>()
