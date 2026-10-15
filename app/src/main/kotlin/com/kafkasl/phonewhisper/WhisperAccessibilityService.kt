@@ -63,6 +63,7 @@ class WhisperAccessibilityService : AccessibilityService() {
     private var audioRecord: AudioRecord? = null
     private var pcmStream: ByteArrayOutputStream? = null
     private val handler = Handler(Looper.getMainLooper())
+    private var pendingRestore: Runnable? = null
     private val hideFeedback = Runnable {
         feedbackView?.animate()?.alpha(0f)?.setDuration(180)?.withEndAction {
             feedbackView?.visibility = View.GONE
@@ -522,6 +523,8 @@ class WhisperAccessibilityService : AccessibilityService() {
 
     // --- Text injection ---
 
+    private val CLIPBOARD_RESTORE_DELAY_MS = 1500L
+
     private fun injectText(
         text: String,
         feedback: String? = "Copied to clipboard",
@@ -533,6 +536,7 @@ class WhisperAccessibilityService : AccessibilityService() {
         // Paste is the only insertion that every app renders correctly (hint-as-text
         // fields included), so always paste through the clipboard. When the user opted
         // out of keeping the transcription, restore the previous clipboard afterwards.
+        flushPendingRestore()
         val savedClip = if (copyToClipboard) null else cm.primaryClip
         cm.setPrimaryClip(clip)
         feedback?.let {
@@ -555,9 +559,7 @@ class WhisperAccessibilityService : AccessibilityService() {
             }
         } finally {
             candidates.forEach { it.recycle() }
-            if (!copyToClipboard) {
-                if (savedClip != null) cm.setPrimaryClip(savedClip) else cm.clearPrimaryClip()
-            }
+            if (!copyToClipboard) scheduleClipboardRestore(cm, savedClip)
         }
 
         Log.i(TAG, if (injected) "Text injection action reported success" else if (copyToClipboard) "No injection action succeeded; clipboard fallback only" else "No injection action succeeded")
@@ -573,6 +575,26 @@ class WhisperAccessibilityService : AccessibilityService() {
         val ok = node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, args)
         node.refresh()
         Log.i(TAG, "Caret->end(len=$len) set=$ok readback=${node.textSelectionStart}..${node.textSelectionEnd} textLen=${node.text?.length}")
+    }
+
+    // Keep reads the clipboard asynchronously after ACTION_PASTE, so the previous
+    // clipboard must be restored with a delay or the paste lands empty.
+    private fun scheduleClipboardRestore(cm: ClipboardManager, savedClip: ClipData?) {
+        flushPendingRestore()
+        val r = Runnable {
+            if (savedClip != null) cm.setPrimaryClip(savedClip) else cm.clearPrimaryClip()
+            pendingRestore = null
+        }
+        pendingRestore = r
+        handler.postDelayed(r, CLIPBOARD_RESTORE_DELAY_MS)
+    }
+
+    private fun flushPendingRestore() {
+        pendingRestore?.let {
+            handler.removeCallbacks(it)
+            it.run()
+            pendingRestore = null
+        }
     }
 
     private fun findInjectionCandidates(): List<AccessibilityNodeInfo> {
