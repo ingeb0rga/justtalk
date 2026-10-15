@@ -474,6 +474,9 @@ class WhisperAccessibilityService : AccessibilityService() {
             return
         }
 
+        val removeFillers = prefs().getBoolean("remove_fillers", false)
+        val text2 = if (removeFillers) FillerFilter.clean(text) else text
+
         val usePostProcessing = CLOUD_ENABLED && prefs().getBoolean("use_post_processing", false)
         val apiKey = prefs().getString("api_key", "") ?: ""
 
@@ -481,7 +484,7 @@ class WhisperAccessibilityService : AccessibilityService() {
             if (apiKey.isBlank()) {
                 handler.post {
                     toast("Post-processing needs API key. Using raw text.")
-                    injectText(text)
+                    injectText(text2)
                     state = State.IDLE
                     setBusy(false)
                     setAppearance(COLOR_IDLE)
@@ -491,12 +494,12 @@ class WhisperAccessibilityService : AccessibilityService() {
 
             val prompt = prefs().getString("post_processing_prompt", PostProcessor.DEFAULT_PROMPT) ?: PostProcessor.DEFAULT_PROMPT
             
-            PostProcessor.process(text, prompt, apiKey) { result ->
+            PostProcessor.process(text2, prompt, apiKey) { result ->
                 handler.post {
                     if (result.text != null && result.text.isNotBlank()) {
                         injectText(result.text)
                     } else {
-                        injectText(text, feedback = "Cleanup failed — raw copied to clipboard", feedbackDurationMs = 3000)
+                        injectText(text2, feedback = "Cleanup failed — raw copied to clipboard", feedbackDurationMs = 3000)
                     }
                     state = State.IDLE
                     setBusy(false)
@@ -505,7 +508,7 @@ class WhisperAccessibilityService : AccessibilityService() {
             }
         } else {
             handler.post {
-                injectText(text)
+                injectText(text2)
                 state = State.IDLE
                 setBusy(false)
                 setAppearance(COLOR_IDLE)

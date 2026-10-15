@@ -10,10 +10,15 @@ import java.util.concurrent.TimeUnit
 
 data class Model(
     val name: String,
+    /** Directory name under files/models (also tar.bz2 asset name for GitHub-hosted models). */
     val archive: String,
     val sizeMb: Int,
     val quality: String,
     val recommended: Boolean = false,
+    /** Non-null: download individual files from this HuggingFace repo instead of a GitHub tar.bz2. */
+    val hfRepo: String? = null,
+    /** Repo-relative file paths, only used when hfRepo != null. */
+    val hfFiles: List<String> = emptyList(),
 )
 
 /** Fork decision: cloud (OpenAI) transcription/cleanup is disabled. */
@@ -22,6 +27,17 @@ const val CLOUD_ENABLED = false
 val MODEL_CATALOG = listOf(
     Model("Qwen3-ASR 0.6B", "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25",
         838, "★★★★★ ru + en + 27 языков, пунктуация", recommended = true),
+    Model("Qwen3-ASR 1.7B", "sherpa-onnx-qwen3-asr-1.7B-int8",
+        2290, "точнее, но 2.3GB и ~2× медленнее; нет официального архива — качается с HuggingFace",
+        hfRepo = "ilmina/qwen3-asr-1.7b-sherpa-onnx",
+        hfFiles = listOf(
+            "conv_frontend.onnx",
+            "encoder.int8.onnx",
+            "decoder.int8.onnx",
+            "tokenizer/merges.txt",
+            "tokenizer/vocab.json",
+            "tokenizer/tokenizer_config.json",
+        )),
 )
 
 sealed class DownloadState {
@@ -40,11 +56,20 @@ object ModelDownloader {
     fun modelDir(ctx: Context, model: Model) =
         File(ctx.filesDir, "models/${model.archive}")
 
-    fun isInstalled(ctx: Context, model: Model) =
-        modelDir(ctx, model).exists()
+    fun isInstalled(ctx: Context, model: Model): Boolean {
+        val dir = modelDir(ctx, model)
+        if (!dir.exists()) return false
+        // HF-downloaded models are marked complete with a marker file;
+        // legacy tar.bz2 installs are valid when the onnx entrypoint is present.
+        return File(dir, ".complete").exists() || File(dir, "conv_frontend.onnx").exists()
+    }
 
     /** Download and extract model. Callbacks fire on background thread. */
     fun download(ctx: Context, model: Model, onState: (DownloadState) -> Unit) {
+        if (model.hfRepo != null) {
+            downloadFromHf(ctx, model, onState)
+            return
+        }
         val url = "$BASE_URL/${model.archive}.tar.bz2"
         val tmpFile = File(ctx.cacheDir, "${model.archive}.tar.bz2")
         val outDir = File(ctx.filesDir, "models")
@@ -59,6 +84,33 @@ object ModelDownloader {
                 onState(DownloadState.Error(e.message ?: "Unknown error"))
             } finally {
                 tmpFile.delete()
+            }
+        }.start()
+    }
+
+    /** Download each repo file into the model dir; progress is aggregated across files. */
+    private fun downloadFromHf(ctx: Context, model: Model, onState: (DownloadState) -> Unit) {
+        val dir = modelDir(ctx, model)
+        Thread {
+            try {
+                dir.mkdirs()
+                val n = model.hfFiles.size
+                model.hfFiles.forEachIndexed { i, rel ->
+                    val dest = File(dir, rel)
+                    dest.parentFile?.mkdirs()
+                    val url = "https://huggingface.co/${model.hfRepo}/resolve/main/$rel"
+                    downloadFile(url, dest) { st ->
+                        when (st) {
+                            is DownloadState.Downloading ->
+                                onState(DownloadState.Downloading((i + st.progress) / n))
+                            else -> onState(st)
+                        }
+                    }
+                }
+                File(dir, ".complete").createNewFile()
+                onState(DownloadState.Done)
+            } catch (e: Exception) {
+                onState(DownloadState.Error(e.message ?: "Unknown error"))
             }
         }.start()
     }

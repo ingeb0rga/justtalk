@@ -144,6 +144,16 @@ class MainActivity : AppCompatActivity() {
             clipSwitch.isChecked = newVal
         })
 
+        val fillersSwitch = MaterialSwitch(this).apply {
+            isChecked = prefs().getBoolean("remove_fillers", false)
+            isClickable = false
+        }
+        root.addView(settingsRow("Remove filler words", "Фильтрует «эм», «ээ», «мм», мычание", fillersSwitch) {
+            val newVal = !fillersSwitch.isChecked
+            prefs().edit().putBoolean("remove_fillers", newVal).apply()
+            fillersSwitch.isChecked = newVal
+        })
+
         val keyRow = settingsRow("OpenAI API Key", "Tap to set") { promptApiKey() }
         keyRowSub = keyRow.findViewWithTag("subtitle")
         if (CLOUD_ENABLED) root.addView(keyRow)
