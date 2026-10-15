@@ -41,6 +41,8 @@ class WhisperAccessibilityService : AccessibilityService() {
         private const val TAP_THRESHOLD_DP = 10
         private const val RING_DP = 56
         private const val FEEDBACK_OFFSET_DP = 64
+        private const val OVERLAY_EVAL_DELAY_MS = 150L
+        private const val OVERLAY_MAX_DEPTH = 14
 
         private const val COLOR_IDLE = 0xDD1C1C1E.toInt()
         private const val COLOR_RECORDING = 0xDDEF4444.toInt()
@@ -77,11 +79,57 @@ class WhisperAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         instance = this
         showOverlay()
+        evaluateOverlayVisibility()
         // Try to load local model in background
         thread { initLocalModel() }
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        when (event?.eventType) {
+            AccessibilityEvent.TYPE_VIEW_FOCUSED,
+            AccessibilityEvent.TYPE_VIEW_CLICKED,
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> scheduleOverlayEvaluation()
+        }
+    }
+
+    /** Coalesced visibility check: show mic dot only while an editable field has focus. */
+    private fun scheduleOverlayEvaluation() {
+        handler.removeCallbacks(overlayEvaluation)
+        handler.postDelayed(overlayEvaluation, OVERLAY_EVAL_DELAY_MS)
+    }
+
+    private val overlayEvaluation = Runnable { evaluateOverlayVisibility() }
+
+    private fun evaluateOverlayVisibility() {
+        val view = overlayView ?: return
+        val target = try {
+            findFocusedEditable(rootInActiveWindow, depth = 0)
+        } catch (e: Exception) {
+            Log.w(TAG, "Overlay evaluation failed: ${e.message}")
+            null
+        }
+        val visible = target != null
+        target?.recycle()
+        if (view.visibility == (if (visible) View.VISIBLE else View.GONE)) return
+        view.visibility = if (visible) View.VISIBLE else View.GONE
+        Log.i(TAG, "Overlay ${if (visible) "shown" else "hidden"} (editable focus: $visible)")
+    }
+
+    /** Depth-limited DFS for a focused editable node. Caller recycles the result. */
+    private fun findFocusedEditable(node: AccessibilityNodeInfo?, depth: Int): AccessibilityNodeInfo? {
+        if (node == null || depth > OVERLAY_MAX_DEPTH) return null
+        val className = node.className?.toString().orEmpty()
+        if (node.isFocused && (node.isEditable || className.contains("EditText"))) {
+            return AccessibilityNodeInfo.obtain(node)
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val found = try { findFocusedEditable(child, depth + 1) } finally { child.recycle() }
+            if (found != null) return found
+        }
+        return null
+    }
     override fun onInterrupt() {}
 
     override fun onDestroy() {
