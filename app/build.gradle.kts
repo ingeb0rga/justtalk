@@ -11,8 +11,8 @@ android {
         applicationId = "com.spirt.justtalk"
         minSdk = 30
         targetSdk = 34
-        versionCode = 12
-        versionName = "1.0.0"
+        versionCode = 13
+        versionName = "1.1.0"
 
         ndk { abiFilters += "arm64-v8a" }
     }

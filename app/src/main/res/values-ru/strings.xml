@@ -16,6 +16,7 @@
     <string name="setup_required">Требуется настройка</string>
     <string name="settings">Настройки</string>
     <string name="version">Версия</string>
+    <string name="no_model_warning">Распознавание недоступно: нет скачанной модели. Скачай её в настройках JustTalk.</string>
     <string name="language">Язык приложения</string>
     <string name="lang_system">Системный</string>
 

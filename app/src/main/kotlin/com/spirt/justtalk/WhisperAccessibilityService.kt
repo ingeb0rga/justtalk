@@ -364,6 +364,10 @@ class WhisperAccessibilityService : AccessibilityService() {
             toast(l(R.string.grant_audio_app)); return
         }
 
+        if (MODEL_CATALOG.none { ModelDownloader.isInstalled(this, it) }) {
+            reset(l(R.string.no_model_warning)); return
+        }
+
         val bufSize = AudioRecord.getMinBufferSize(
             SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
         )
