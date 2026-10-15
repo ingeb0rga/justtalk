@@ -1,4 +1,4 @@
-package com.kafkasl.phonewhisper
+package com.spirt.justtalk
 
 import android.content.Context
 import android.util.Log

@@ -1,4 +1,4 @@
-package com.kafkasl.phonewhisper
+package com.spirt.justtalk
 
 import android.accessibilityservice.AccessibilityService
 import android.content.ClipData
@@ -536,7 +536,7 @@ class WhisperAccessibilityService : AccessibilityService() {
 
     private fun injectText(text: String) {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("phonewhisper", text)
+        val clip = ClipData.newPlainText("justtalk", text)
         // Paste is the only insertion that every app renders correctly (hint-as-text
         // fields included), so always paste through the clipboard.
         cm.setPrimaryClip(clip)
@@ -716,6 +716,6 @@ class WhisperAccessibilityService : AccessibilityService() {
         )
     }
 
-    private fun prefs() = getSharedPreferences("phonewhisper", MODE_PRIVATE)
+    private fun prefs() = getSharedPreferences("justtalk", MODE_PRIVATE)
     private fun toast(msg: String) { handler.post { Toast.makeText(this, msg, Toast.LENGTH_SHORT).show() } }
 }

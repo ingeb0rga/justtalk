@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.kafkasl.phonewhisper"
+    namespace = "com.spirt.justtalk"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.kafkasl.phonewhisper"
+        applicationId = "com.spirt.justtalk"
         minSdk = 30
         targetSdk = 34
         versionCode = 12

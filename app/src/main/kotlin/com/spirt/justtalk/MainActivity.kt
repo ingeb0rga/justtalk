@@ -1,4 +1,4 @@
-package com.kafkasl.phonewhisper
+package com.spirt.justtalk
 
 import android.Manifest
 import android.content.Intent
@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     private fun langLabels() = listOf(getString(R.string.lang_system), "Русский", "English")
 
     private fun applyLangPref(ctx: android.content.Context): android.content.Context {
-        val lang = ctx.getSharedPreferences("phonewhisper", MODE_PRIVATE).getString("app_lang", "system") ?: "system"
+        val lang = ctx.getSharedPreferences("justtalk", MODE_PRIVATE).getString("app_lang", "system") ?: "system"
         if (lang == "system") return ctx
         val loc = java.util.Locale(lang)
         java.util.Locale.setDefault(loc)
@@ -522,7 +522,7 @@ class MainActivity : AppCompatActivity() {
         ta.recycle()
         return color
     }
-    private fun prefs() = getSharedPreferences("phonewhisper", MODE_PRIVATE)
+    private fun prefs() = getSharedPreferences("justtalk", MODE_PRIVATE)
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     companion object {
