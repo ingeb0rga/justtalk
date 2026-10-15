@@ -527,7 +527,7 @@ class WhisperAccessibilityService : AccessibilityService() {
 
     private fun injectText(
         text: String,
-        feedback: String? = "Copied to clipboard",
+        feedback: String? = null,
         feedbackDurationMs: Long = 2000
     ) {
         val copyToClipboard = prefs().getBoolean("copy_to_clipboard", true)
