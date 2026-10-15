@@ -72,7 +72,7 @@ class LocalTranscriber private constructor(private val recognizer: OfflineRecogn
                             decoder = decoder,
                             tokenizer = tokenizerDir,
                         ),
-                        numThreads = 4,
+                        numThreads = Runtime.getRuntime().availableProcessors(),
                     )
                 )
             }

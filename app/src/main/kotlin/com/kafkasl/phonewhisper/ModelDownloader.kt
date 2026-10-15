@@ -59,9 +59,15 @@ object ModelDownloader {
     fun isInstalled(ctx: Context, model: Model): Boolean {
         val dir = modelDir(ctx, model)
         if (!dir.exists()) return false
-        // HF-downloaded models are marked complete with a marker file;
-        // legacy tar.bz2 installs are valid when the onnx entrypoint is present.
-        return File(dir, ".complete").exists() || File(dir, "conv_frontend.onnx").exists()
+        // A truncated onnx file passes "exists" but aborts the process natively
+        // (Ort::Exception / SIGABRT) on load — validate minimum sizes instead.
+        fun ok(f: File?, minMb: Long) = f != null && f.isFile && f.length() >= minMb * 1024 * 1024
+        val files = dir.listFiles().orEmpty()
+        val encoder = files.firstOrNull { it.name.startsWith("encoder") && it.name.endsWith(".onnx") }
+        val decoder = files.firstOrNull { it.name.startsWith("decoder") && it.name.endsWith(".onnx") }
+        return ok(File(dir, "conv_frontend.onnx"), 20) &&
+            ok(encoder, 50) && ok(decoder, 200) &&
+            File(dir, "tokenizer").isDirectory
     }
 
     /** Download and extract model. Callbacks fire on background thread. */

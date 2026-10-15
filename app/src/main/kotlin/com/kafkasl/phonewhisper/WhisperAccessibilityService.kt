@@ -647,11 +647,19 @@ class WhisperAccessibilityService : AccessibilityService() {
 
         if (node.isEditable || node.className?.toString()?.contains("EditText") == true) {
             val current = node.text?.toString().orEmpty()
-            val start = if (node.textSelectionStart >= 0) node.textSelectionStart else current.length
-            val end = if (node.textSelectionEnd >= 0) node.textSelectionEnd else start
-            val replacementStart = minOf(start, end)
-            val replacementEnd = maxOf(start, end)
-            val updated = current.replaceRange(replacementStart, replacementEnd, text)
+            // Some apps expose the placeholder as node text with the caret at its end,
+            // which would insert AFTER the hint ("Текст<transcribed>"). When the current
+            // text equals the hint the field is actually empty -> replace everything.
+            val hint = node.hintText?.toString()
+            val updated: String = if (hint != null && current == hint) {
+                text
+            } else {
+                val start = if (node.textSelectionStart >= 0) node.textSelectionStart else current.length
+                val end = if (node.textSelectionEnd >= 0) node.textSelectionEnd else start
+                val replacementStart = minOf(start, end)
+                val replacementEnd = maxOf(start, end)
+                current.replaceRange(replacementStart, replacementEnd, text)
+            }
             val args = Bundle().apply {
                 putCharSequence(
                     AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
