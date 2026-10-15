@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/logo.svg" width="128" height="128" alt="Phone Whisper Logo">
+  <img src="docs/logo.svg" width="128" height="128" alt="JustTalk Logo">
 </p>
 
-# Phone Whisper (fork)
+# JustTalk (fork)
 
 Push-to-talk dictation for Android.
 
@@ -53,14 +53,14 @@ make adb-install
 
 ## Setup
 
-1. Open **Phone Whisper**
+1. Open **JustTalk**
 2. Grant the **audio recording** permission
 3. Enable the **Accessibility Service**
 4. Download a model in the app (see catalog below)
 
 ## Why does it need Accessibility?
 
-Phone Whisper uses Android Accessibility Service for one narrow reason: to insert dictated text into the currently focused text field across apps.
+JustTalk uses Android Accessibility Service for one narrow reason: to insert dictated text into the currently focused text field across apps.
 
 It does **not** replace your keyboard. It does **not** run background automation. It only acts after you explicitly tap the overlay button.
 
