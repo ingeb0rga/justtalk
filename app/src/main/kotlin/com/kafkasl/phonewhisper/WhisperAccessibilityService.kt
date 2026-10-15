@@ -527,9 +527,17 @@ class WhisperAccessibilityService : AccessibilityService() {
         feedback: String? = "Copied to clipboard",
         feedbackDurationMs: Long = 2000
     ) {
-        val clip = ClipData.newPlainText("phonewhisper", text)
-        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
-        feedback?.let { showFeedback(it, feedbackDurationMs) }
+        val copyToClipboard = prefs().getBoolean("copy_to_clipboard", true)
+        if (copyToClipboard) {
+            val clip = ClipData.newPlainText("phonewhisper", text)
+            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
+        }
+        feedback?.let {
+            showFeedback(
+                if (copyToClipboard) it else it.replace("Copied to clipboard", "Inserted"),
+                feedbackDurationMs
+            )
+        }
 
         val candidates = findInjectionCandidates()
         Log.i(TAG, "Injecting text into ${candidates.size} candidate node(s)")
@@ -537,7 +545,7 @@ class WhisperAccessibilityService : AccessibilityService() {
         var injected = false
         try {
             for (candidate in candidates) {
-                if (tryInjectIntoNode(candidate, text)) {
+                if (tryInjectIntoNode(candidate, text, allowPaste = copyToClipboard)) {
                     injected = true
                     break
                 }
@@ -546,7 +554,7 @@ class WhisperAccessibilityService : AccessibilityService() {
             candidates.forEach { it.recycle() }
         }
 
-        Log.i(TAG, if (injected) "Text injection action reported success" else "No injection action succeeded; clipboard fallback only")
+        Log.i(TAG, if (injected) "Text injection action reported success" else if (copyToClipboard) "No injection action succeeded; clipboard fallback only" else "No injection action succeeded")
     }
 
     private fun findInjectionCandidates(): List<AccessibilityNodeInfo> {
@@ -620,20 +628,22 @@ class WhisperAccessibilityService : AccessibilityService() {
         return score
     }
 
-    private fun tryInjectIntoNode(node: AccessibilityNodeInfo, text: String): Boolean {
+    private fun tryInjectIntoNode(node: AccessibilityNodeInfo, text: String, allowPaste: Boolean = true): Boolean {
         logNode("Trying node", node)
 
         node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
 
-        findCustomPasteAction(node)?.let { action ->
-            val ok = node.performAction(action.id)
-            Log.i(TAG, "Custom action '${action.label}' (${action.id}) => $ok")
-            if (ok) return true
-        }
+        if (allowPaste) {
+            findCustomPasteAction(node)?.let { action ->
+                val ok = node.performAction(action.id)
+                Log.i(TAG, "Custom action '${action.label}' (${action.id}) => $ok")
+                if (ok) return true
+            }
 
-        val pasteOk = node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
-        Log.i(TAG, "ACTION_PASTE => $pasteOk")
-        if (pasteOk) return true
+            val pasteOk = node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+            Log.i(TAG, "ACTION_PASTE => $pasteOk")
+            if (pasteOk) return true
+        }
 
         if (node.isEditable || node.className?.toString()?.contains("EditText") == true) {
             val current = node.text?.toString().orEmpty()

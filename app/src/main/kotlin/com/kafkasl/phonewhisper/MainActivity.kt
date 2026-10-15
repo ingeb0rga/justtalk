@@ -132,8 +132,18 @@ class MainActivity : AppCompatActivity() {
         if (CLOUD_ENABLED) root.addView(promptRow)
 
         // --- Settings Section ---
-        if (CLOUD_ENABLED) root.addView(sectionHeader("Settings"))
-        
+        root.addView(sectionHeader("Settings"))
+
+        val clipSwitch = MaterialSwitch(this).apply {
+            isChecked = prefs().getBoolean("copy_to_clipboard", true)
+            isClickable = false
+        }
+        root.addView(settingsRow("Copy to clipboard", "Keep a copy of each transcription in clipboard", clipSwitch) {
+            val newVal = !clipSwitch.isChecked
+            prefs().edit().putBoolean("copy_to_clipboard", newVal).apply()
+            clipSwitch.isChecked = newVal
+        })
+
         val keyRow = settingsRow("OpenAI API Key", "Tap to set") { promptApiKey() }
         keyRowSub = keyRow.findViewWithTag("subtitle")
         if (CLOUD_ENABLED) root.addView(keyRow)
