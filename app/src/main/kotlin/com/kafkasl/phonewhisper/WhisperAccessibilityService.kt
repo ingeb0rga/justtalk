@@ -537,7 +537,6 @@ class WhisperAccessibilityService : AccessibilityService() {
         // fields included), so always paste through the clipboard. When the user opted
         // out of keeping the transcription, restore the previous clipboard afterwards.
         flushPendingRestore()
-        val savedClip = if (copyToClipboard) null else cm.primaryClip
         cm.setPrimaryClip(clip)
         feedback?.let {
             showFeedback(
@@ -559,7 +558,7 @@ class WhisperAccessibilityService : AccessibilityService() {
             }
         } finally {
             candidates.forEach { it.recycle() }
-            if (!copyToClipboard) scheduleClipboardRestore(cm, savedClip)
+            if (!copyToClipboard) scheduleClipboardWipe(cm)
         }
 
         Log.i(TAG, if (injected) "Text injection action reported success" else if (copyToClipboard) "No injection action succeeded; clipboard fallback only" else "No injection action succeeded")
@@ -577,12 +576,14 @@ class WhisperAccessibilityService : AccessibilityService() {
         Log.i(TAG, "Caret->end(len=$len) set=$ok readback=${node.textSelectionStart}..${node.textSelectionEnd} textLen=${node.text?.length}")
     }
 
-    // Keep reads the clipboard asynchronously after ACTION_PASTE, so the previous
-    // clipboard must be restored with a delay or the paste lands empty.
-    private fun scheduleClipboardRestore(cm: ClipboardManager, savedClip: ClipData?) {
+    // Apps cannot READ another app's clipboard content (Android 10+), so the previous
+    // clipboard value cannot be restored. With the toggle off we instead wipe the
+    // transcription from the clipboard after the paste has been consumed. Keep reads
+    // the clipboard asynchronously, hence the delay.
+    private fun scheduleClipboardWipe(cm: ClipboardManager) {
         flushPendingRestore()
         val r = Runnable {
-            if (savedClip != null) cm.setPrimaryClip(savedClip) else cm.clearPrimaryClip()
+            cm.setPrimaryClip(ClipData.newPlainText("", ""))
             pendingRestore = null
         }
         pendingRestore = r
