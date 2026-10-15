@@ -132,7 +132,7 @@ class MainActivity : AppCompatActivity() {
         if (CLOUD_ENABLED) root.addView(promptRow)
 
         // --- Settings Section ---
-        root.addView(sectionHeader("Settings"))
+        if (CLOUD_ENABLED) root.addView(sectionHeader("Settings"))
         
         val keyRow = settingsRow("OpenAI API Key", "Tap to set") { promptApiKey() }
         keyRowSub = keyRow.findViewWithTag("subtitle")
