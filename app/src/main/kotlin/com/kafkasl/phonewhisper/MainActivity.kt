@@ -97,7 +97,7 @@ class MainActivity : AppCompatActivity() {
             cloudSwitch.isChecked = newCloud
             refresh()
         }
-        root.addView(cloudRow)
+        root.addView(if (CLOUD_ENABLED) cloudRow else cloudRow.apply { visibility = View.GONE })
 
         // Local Models section
         modelContainer = vertical(0)
@@ -105,8 +105,8 @@ class MainActivity : AppCompatActivity() {
         for (m in MODEL_CATALOG) modelContainer.addView(buildModelRow(m))
         root.addView(modelContainer)
 
-        // --- Post-Processing Section ---
-        root.addView(sectionHeader("Post-Processing"))
+        // --- Post-Processing Section (cloud-only; hidden in this fork) ---
+        if (CLOUD_ENABLED) root.addView(sectionHeader("Post-Processing"))
         
         val isPostProcessing = prefs().getBoolean("use_post_processing", false)
         val postProcessSwitch = MaterialSwitch(this).apply {
@@ -119,24 +119,24 @@ class MainActivity : AppCompatActivity() {
             postProcessSwitch.isChecked = newVal
             refresh()
         }
-        root.addView(postProcessRow)
+        if (CLOUD_ENABLED) root.addView(postProcessRow)
 
         promptContainer = vertical(0)
         for (preset in promptPresets()) promptContainer.addView(buildPromptRow(preset))
-        root.addView(promptContainer)
+        if (CLOUD_ENABLED) root.addView(promptContainer)
 
         promptRow = settingsRow("Edit current prompt", currentPrompt()) { promptPostProcessing() }
         promptRowSub = promptRow.findViewWithTag("subtitle")
         promptRowSub.maxLines = 2
         promptRowSub.ellipsize = android.text.TextUtils.TruncateAt.END
-        root.addView(promptRow)
+        if (CLOUD_ENABLED) root.addView(promptRow)
 
         // --- Settings Section ---
         root.addView(sectionHeader("Settings"))
         
         val keyRow = settingsRow("OpenAI API Key", "Tap to set") { promptApiKey() }
         keyRowSub = keyRow.findViewWithTag("subtitle")
-        root.addView(keyRow)
+        if (CLOUD_ENABLED) root.addView(keyRow)
 
         setContentView(ScrollView(this).apply {
             setBackgroundColor(attrColor(android.R.attr.colorBackground))
@@ -306,8 +306,8 @@ class MainActivity : AppCompatActivity() {
     private fun refresh() {
         val audio = hasPerm(Manifest.permission.RECORD_AUDIO)
         val acc = WhisperAccessibilityService.instance != null
-        val useLocal = prefs().getBoolean("use_local", true)
-        val usePostProcessing = prefs().getBoolean("use_post_processing", false)
+        val useLocal = !CLOUD_ENABLED || prefs().getBoolean("use_local", true)
+        val usePostProcessing = CLOUD_ENABLED && prefs().getBoolean("use_post_processing", false)
         val hasKey = !prefs().getString("api_key", "").isNullOrBlank()
         val hasModel = LocalTranscriber.availableModels(this).isNotEmpty()
 

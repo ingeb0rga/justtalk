@@ -57,6 +57,26 @@ class LocalTranscriber private constructor(private val recognizer: OfflineRecogn
         /** Auto-detect model type from files present in the directory. */
         private fun detectModelConfig(dir: File): OfflineRecognizerConfig? {
             val p = dir.absolutePath
+
+            // Qwen3-ASR (conv_frontend.onnx + tokenizer/ dir; no tokens.txt at root)
+            val convFrontend = findFile(p, "conv_frontend")
+            if (convFrontend != null) {
+                val encoder = findFile(p, "encoder") ?: return null
+                val decoder = findFile(p, "decoder") ?: return null
+                val tokenizerDir = File("$p/tokenizer").takeIf { it.isDirectory }?.absolutePath ?: return null
+                return OfflineRecognizerConfig(
+                    modelConfig = OfflineModelConfig(
+                        qwen3Asr = OfflineQwen3AsrModelConfig(
+                            convFrontend = convFrontend,
+                            encoder = encoder,
+                            decoder = decoder,
+                            tokenizer = tokenizerDir,
+                        ),
+                        numThreads = 3,
+                    )
+                )
+            }
+
             val tokens = "$p/tokens.txt"
             if (!File(tokens).exists()) return null
 

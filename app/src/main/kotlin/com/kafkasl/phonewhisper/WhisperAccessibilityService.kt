@@ -357,13 +357,13 @@ class WhisperAccessibilityService : AccessibilityService() {
 
         if (pcm.isEmpty()) { reset("No audio captured"); return }
 
-        val useLocal = prefs().getBoolean("use_local", true)
+        val useLocal = true // cloud mode disabled in this fork (CLOUD_ENABLED = false)
         val local = localTranscriber
 
         if (useLocal && local != null) {
             transcribeLocal(pcm, local)
         } else {
-            transcribeApi(pcm)
+            reset("No local model installed")
         }
     }
 
@@ -426,7 +426,7 @@ class WhisperAccessibilityService : AccessibilityService() {
             return
         }
 
-        val usePostProcessing = prefs().getBoolean("use_post_processing", false)
+        val usePostProcessing = CLOUD_ENABLED && prefs().getBoolean("use_post_processing", false)
         val apiKey = prefs().getString("api_key", "") ?: ""
 
         if (usePostProcessing) {
