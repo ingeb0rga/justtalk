@@ -20,18 +20,8 @@ data class Model(
 const val CLOUD_ENABLED = false
 
 val MODEL_CATALOG = listOf(
-    Model("Parakeet v3 ru", "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",
-        465, "★★★★★ ru + 25 яз., пунктуация; en+ru микс может путать язык", recommended = true),
-    Model("GigaAM v2 ru", "sherpa-onnx-nemo-transducer-giga-am-v2-russian-2025-04-19",
-        164, "★★★★ ru-only, быстрый"),
     Model("Qwen3-ASR 0.6B", "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25",
-        838, "★★★★★ лучший для en+ru, пунктуация; медленный"),
-    Model("Parakeet 110M en", "sherpa-onnx-nemo-parakeet_tdt_ctc_110m-en-36000-int8",
-        100, "★★★ en-only"),
-    Model("Whisper Base en", "sherpa-onnx-whisper-base.en",
-        199, "★★ en-only"),
-    Model("Moonshine Tiny en", "sherpa-onnx-moonshine-tiny-en-int8",
-        103, "★★ en-only"),
+        838, "★★★★★ ru + en + 27 языков, пунктуация", recommended = true),
 )
 
 sealed class DownloadState {
