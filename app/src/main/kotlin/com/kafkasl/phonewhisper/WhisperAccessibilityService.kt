@@ -557,6 +557,17 @@ class WhisperAccessibilityService : AccessibilityService() {
         Log.i(TAG, if (injected) "Text injection action reported success" else if (copyToClipboard) "No injection action succeeded; clipboard fallback only" else "No injection action succeeded")
     }
 
+    private fun moveCaretToEnd(node: AccessibilityNodeInfo) {
+        val len = node.text?.length ?: 0
+        val args = Bundle().apply {
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, len)
+            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, len)
+        }
+        val ok = node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, args)
+        node.refresh()
+        Log.i(TAG, "Caret->end(len=$len) set=$ok readback=${node.textSelectionStart}..${node.textSelectionEnd} textLen=${node.text?.length}")
+    }
+
     private fun findInjectionCandidates(): List<AccessibilityNodeInfo> {
         val candidates = mutableListOf<AccessibilityNodeInfo>()
 
@@ -637,12 +648,15 @@ class WhisperAccessibilityService : AccessibilityService() {
             findCustomPasteAction(node)?.let { action ->
                 val ok = node.performAction(action.id)
                 Log.i(TAG, "Custom action '${action.label}' (${action.id}) => $ok")
-                if (ok) return true
+                if (ok) { moveCaretToEnd(node); return true }
             }
 
             val pasteOk = node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
             Log.i(TAG, "ACTION_PASTE => $pasteOk")
-            if (pasteOk) return true
+            if (pasteOk) {
+                moveCaretToEnd(node)
+                return true
+            }
         }
 
         if (node.isEditable || node.className?.toString()?.contains("EditText") == true) {
@@ -675,8 +689,7 @@ class WhisperAccessibilityService : AccessibilityService() {
                     putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, updated.length)
                     putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, updated.length)
                 }
-                val selOk = node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
-                Log.i(TAG, "ACTION_SET_SELECTION(end) => $selOk")
+                moveCaretToEnd(node)
                 return true
             }
         }
